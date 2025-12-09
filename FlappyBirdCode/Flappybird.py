@@ -509,6 +509,12 @@ def FlappyBirdCore():
             pipes = pipe_movement(pipes, pipe_speed)
             pipe_creation(screen, pipes, Green)
 
+            # Draw score and high score--Placed here so it is above the pipes
+            score(screen, font, state["scoring_number"],state["lives"])
+            display_high = max(high_score, state["scoring_number"])
+            high_score_surf = font.render(f"High Score: {int(display_high)}", True, (0, 0, 0))
+            screen.blit(high_score_surf, (10, 40))
+
             #Pipe wiggle
             for pipe in pipes:
                 pipe["rect"].y += random.choice([-1, 0, 1])
@@ -569,36 +575,6 @@ def FlappyBirdCore():
                 running = False
                 game_state = "game_over"
 
-            # boxes collision using lives + immunity
-            now_time = time.time()
-            if state["immunity"] and now_time >= state["immunity_end"]:
-                state["immunity"] = False
-
-            for rect, vel in boxes:
-                hit1 = bird_rect1.colliderect(rect)
-                hit2 = show_bird2 and bird_rect2.colliderect(rect)
-                if hit1 or hit2:
-                    if not state["immunity"]:
-                        state["lives"] -= 1
-                        print("Hit box, lives now:", state["lives"])  # debug
-                        if state["lives"] < 0:
-                            running = False
-                            game_state = "game_over"
-                            break
-                        else:
-                            # start brief immunity after a non-lethal hit
-                            state["immunity"] = True
-                            state["immunity_end"] = now_time + 1
-                            # if already immune, do nothing (no extra life loss)
-            
-            # Triangles
-            if not check_triangle_collision(bird_rect1, triangles, state):
-                running = False
-                game_state = "game_over"
-            elif show_bird2 and not check_triangle_collision(bird_rect2, triangles, state):
-                running = False
-                game_state = "game_over"
-
             # Scoring on pipes (normal phase only)
             if not time_score_active and not tri_score_active:
                 for pipe in pipes:
@@ -611,12 +587,6 @@ def FlappyBirdCore():
                             state["scoring_number"] += 1
                             cycle_count += 1
                             pipe["scored2"] = True
-
-            # Draw score and high score
-            score(screen, font, state["scoring_number"],state["lives"])
-            display_high = max(high_score, state["scoring_number"])
-            high_score_surf = font.render(f"High Score: {int(display_high)}", True, (0, 0, 0))
-            screen.blit(high_score_surf, (10, 40))
             
             # Spawn Bird 2 at random score before box event
             if scoretracker is None:
@@ -662,6 +632,28 @@ def FlappyBirdCore():
                     state["scoring_number"] += 1
                     cycle_count += 1
                     previous_score_time = current_time
+            
+            # boxes collision using lives + immunity
+            now_time = time.time()
+            if state["immunity"] and now_time >= state["immunity_end"]:
+                state["immunity"] = False
+
+            for rect, vel in boxes:
+                hit1 = bird_rect1.colliderect(rect)
+                hit2 = show_bird2 and bird_rect2.colliderect(rect)
+                if hit1 or hit2:
+                    if not state["immunity"]:
+                        state["lives"] -= 1
+                        print("Hit box, lives now:", state["lives"])  # debug
+                        if state["lives"] < 0:
+                            running = False
+                            game_state = "game_over"
+                            break
+                        else:
+                            # start brief immunity after a non-lethal hit
+                            state["immunity"] = True
+                            state["immunity_end"] = now_time + 1
+                            # if already immune, do nothing (no extra life loss)
 
             # Triangle scoring event start (after box phase)
             if cycle_count >= random_for_tri and not tri_score_active and time_score_active:
@@ -692,6 +684,14 @@ def FlappyBirdCore():
                     state["scoring_number"] += 1
                     cycle_count += 1
                     previous_score_time = current_time
+            
+            # Triangles collision using lives + immunity
+            if not check_triangle_collision(bird_rect1, triangles, state):
+                running = False
+                game_state = "game_over"
+            elif show_bird2 and not check_triangle_collision(bird_rect2, triangles, state):
+                running = False
+                game_state = "game_over"
                 
                 if triangles_spawned == triangles_to_spawn and not triangle_wave_created:
                     if len(triangles) == 0:
@@ -750,7 +750,7 @@ def FlappyBirdCore():
 
                     pygame.time.set_timer(Spawnpipe, 1000)
                     pygame.time.set_timer(Spawnbox, 1000)
-                    pygame.time.set_timer(TriangleSpawn, 500)
+                    pygame.time.set_timer(TriangleSpawn, 500) 
 
                     time_score_active = True
                     tri_score_active = True

@@ -1,7 +1,7 @@
 import json
 import os
 # --- Profile Management ---
-PROFILES_FILE = "testprofiles.json"
+PROFILES_FILE = "profiles.json"
 
 def load_profiles():
     if not os.path.exists(PROFILES_FILE):

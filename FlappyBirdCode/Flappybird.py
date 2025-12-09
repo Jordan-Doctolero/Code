@@ -668,6 +668,14 @@ def FlappyBirdCore():
                 previous_score_time = pygame.time.get_ticks()
                 screen.fill(Blue)
 
+            # Triangles collision using lives + immunity
+            if not check_triangle_collision(bird_rect1, triangles, state):
+                running = False
+                game_state = "game_over"
+            elif show_bird2 and not check_triangle_collision(bird_rect2, triangles, state):
+                running = False
+                game_state = "game_over"
+
             # Triangle phase
             if tri_score_active:
                 for i in range(len(triangles) - 1, -1, -1):
@@ -684,15 +692,7 @@ def FlappyBirdCore():
                     state["scoring_number"] += 1
                     cycle_count += 1
                     previous_score_time = current_time
-            
-            # Triangles collision using lives + immunity
-            if not check_triangle_collision(bird_rect1, triangles, state):
-                running = False
-                game_state = "game_over"
-            elif show_bird2 and not check_triangle_collision(bird_rect2, triangles, state):
-                running = False
-                game_state = "game_over"
-                
+
                 if triangles_spawned == triangles_to_spawn and not triangle_wave_created:
                     if len(triangles) == 0:
                         triangle_wave_created = True

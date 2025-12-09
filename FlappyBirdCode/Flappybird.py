@@ -95,28 +95,39 @@ def FlappyBirdCore():
         "scoring_number": 0.0,
         "lives": 3,
 
+
         "immunity": False,
         "immunity_end": 0.0,
+
 
         "double_points": False,
         "double_end": 0.0,
 
+
         "pipe_shrink": False,
         "pipe_restore_time": 0.0,
+
 
         "bird_shrink": False,
         "shrink_end": 0.0,
 
+
         "pipe_slow": False,
         "slow_end": 0.0,
+
 
         "reward_popup": ("", 0.0),
         "red_lives_end": 0.0,
 
+
         "pipe_width": 60,
         "pipe_gap": 150,
         "base_pipe_width": 60,
-        "base_pipe_gap": 150
+        "base_pipe_gap": 150,
+        
+        # Shrunk Bird Images(new)
+        "shrunk_bird1": None,
+        "shrunk_bird2": None
     }
 
     # Bad effects
@@ -221,6 +232,9 @@ def FlappyBirdCore():
         # Shrink bird timeout
         if state["bird_shrink"] and now >= state["shrink_end"]:
             state["bird_shrink"] = False
+            # Clear shrunk images when shrink ends
+            state["shrunk_bird1"] = None
+            state["shrunk_bird2"] = None
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -301,7 +315,9 @@ def FlappyBirdCore():
                             "pipe_slow": False,
                             "slow_end": 0.0,
                             "pipe_width": state["base_pipe_width"],
-                            "pipe_gap": state["base_pipe_gap"]
+                            "pipe_gap": state["base_pipe_gap"],
+                            "shrunk_bird1": None,
+                            "shrunk_bird2": None
                         })
                         inverted_controls = False
                         invert_end_time = 0
@@ -444,7 +460,9 @@ def FlappyBirdCore():
                 "pipe_slow": False,
                 "slow_end": 0.0,
                 "pipe_width": state["base_pipe_width"],
-                "pipe_gap": state["base_pipe_gap"]
+                "pipe_gap": state["base_pipe_gap"],
+                "shrunk_bird1": None,
+                "shrunk_bird2": None
             })
             inverted_controls = False
             invert_end_time = 0
@@ -550,30 +568,50 @@ def FlappyBirdCore():
             for rect, color, born in items:
                 draw_item(screen, rect, color, born)
             items, cycle_count = handle_item_collision(items, bird_rect1, state, cycle_count)
- 
-            # Bird rendering (pipes/normal phase) 
+            if show_bird2:
+                items, cycle_count = handle_item_collision(items, bird_rect2, state, cycle_count)
+
+            # Bird rendering with shrink logic
             if state["bird_shrink"] and now < state["shrink_end"]:
-                shrink_img1 = pygame.transform.scale(Bird1, (int(BIRD_W * 0.5), int(BIRD_H * 0.5)))
-                shrink_rect1 = shrink_img1.get_rect(center=bird_rect1.center)
-                screen.blit(shrink_img1, shrink_rect1)
+                # Create shrunk images once and cache them
+                if state["shrunk_bird1"] is None:
+                    state["shrunk_bird1"] = pygame.transform.scale(Bird1, (int(BIRD_W * 0.5), int(BIRD_H * 0.5)))
+                if show_bird2 and state["shrunk_bird2"] is None:
+                    state["shrunk_bird2"] = pygame.transform.scale(Bird2, (int(BIRD_W * 0.5), int(BIRD_H * 0.5)))
+                
+                # Draw shrunk bird 1
+                shrink_rect1 = state["shrunk_bird1"].get_rect(center=bird_rect1.center)
+                screen.blit(state["shrunk_bird1"], shrink_rect1)
+                
+                # Draw shrunk bird 2
                 if show_bird2:
-                    shrink_img2 = pygame.transform.scale(Bird2, (int(BIRD_W * 0.5), int(BIRD_H * 0.5)))
-                    shrink_rect2 = shrink_img2.get_rect(center=bird_rect2.center)
-                    screen.blit(shrink_img2, shrink_rect2)
+                    shrink_rect2 = state["shrunk_bird2"].get_rect(center=bird_rect2.center)
+                    screen.blit(state["shrunk_bird2"], shrink_rect2)
             else:
                 state["bird_shrink"] = False
                 screen.blit(Bird1, bird_rect1)
                 if show_bird2:
-                    screen.blit(Bird2, bird_rect2) 
+                    screen.blit(Bird2, bird_rect2)  
 
             # Collision with pipes
-            if not check_collision(bird_rect1, pipes, Height, state):
+            collision_rect1 = bird_rect1
+            if state["bird_shrink"] and now < state["shrink_end"]:
+                if state["shrunk_bird1"] is not None:
+                    collision_rect1 = state["shrunk_bird1"].get_rect(center=bird_rect1.center)
+
+            if not check_collision(collision_rect1, pipes, Height, state):
                 running = False
                 game_state = "game_over"
 
-            if show_bird2 and not check_collision(bird_rect2, pipes, Height, state):
-                running = False
-                game_state = "game_over"
+            if show_bird2:
+                collision_rect2 = bird_rect2
+                if state["bird_shrink"] and now < state["shrink_end"]:
+                    if state["shrunk_bird2"] is not None:
+                        collision_rect2 = state["shrunk_bird2"].get_rect(center=bird_rect2.center)
+                
+                if not check_collision(collision_rect2, pipes, Height, state):
+                    running = False
+                    game_state = "game_over"
 
             # Scoring on pipes (normal phase only)
             if not time_score_active and not tri_score_active:
@@ -610,11 +648,12 @@ def FlappyBirdCore():
 
             # Box phase
             if time_score_active:
-                # Changed: draw bird with shrink logic during box phase
+                # Draw bird with shrink logic during box phase
                 if state["bird_shrink"] and now < state["shrink_end"]:
-                    shrink_img1 = pygame.transform.scale(Bird1, (int(BIRD_W * 0.5), int(BIRD_H * 0.5)))
-                    shrink_rect1 = shrink_img1.get_rect(center=bird_rect1.center)
-                    screen.blit(shrink_img1, shrink_rect1)
+                    if state["shrunk_bird1"] is None:
+                        state["shrunk_bird1"] = pygame.transform.scale(Bird1, (int(BIRD_W * 0.5), int(BIRD_H * 0.5)))
+                    shrink_rect1 = state["shrunk_bird1"].get_rect(center=bird_rect1.center)
+                    screen.blit(state["shrunk_bird1"], shrink_rect1)
                 else:
                     screen.blit(Bird1, bird_rect1)
 
@@ -639,8 +678,22 @@ def FlappyBirdCore():
                 state["immunity"] = False
 
             for rect, vel in boxes:
-                hit1 = bird_rect1.colliderect(rect)
-                hit2 = show_bird2 and bird_rect2.colliderect(rect)
+                # Use shrunk rect if bird is shrunk
+                collision_rect1 = bird_rect1
+                if state["bird_shrink"] and now < state["shrink_end"]:
+                    if state["shrunk_bird1"] is not None:
+                        collision_rect1 = state["shrunk_bird1"].get_rect(center=bird_rect1.center)
+                
+                hit1 = collision_rect1.colliderect(rect)
+                
+                hit2 = False
+                if show_bird2:
+                    collision_rect2 = bird_rect2
+                    if state["bird_shrink"] and now < state["shrink_end"]:
+                        if state["shrunk_bird2"] is not None:
+                            collision_rect2 = state["shrunk_bird2"].get_rect(center=bird_rect2.center)
+                    hit2 = collision_rect2.colliderect(rect)
+                
                 if hit1 or hit2:
                     if not state["immunity"]:
                         state["lives"] -= 1
@@ -669,12 +722,23 @@ def FlappyBirdCore():
                 screen.fill(Blue)
 
             # Triangles collision using lives + immunity
-            if not check_triangle_collision(bird_rect1, triangles, state):
+            collision_rect1 = bird_rect1
+            if state["bird_shrink"] and now < state["shrink_end"]:
+                if state["shrunk_bird1"] is not None:
+                    collision_rect1 = state["shrunk_bird1"].get_rect(center=bird_rect1.center)
+            
+            if not check_triangle_collision(collision_rect1, triangles, state):
                 running = False
                 game_state = "game_over"
-            elif show_bird2 and not check_triangle_collision(bird_rect2, triangles, state):
-                running = False
-                game_state = "game_over"
+            elif show_bird2:
+                collision_rect2 = bird_rect2
+                if state["bird_shrink"] and now < state["shrink_end"]:
+                    if state["shrunk_bird2"] is not None:
+                        collision_rect2 = state["shrunk_bird2"].get_rect(center=bird_rect2.center)
+                
+                if not check_triangle_collision(collision_rect2, triangles, state):
+                    running = False
+                    game_state = "game_over"
 
             # Triangle phase
             if tri_score_active:
@@ -725,6 +789,8 @@ def FlappyBirdCore():
 
                 #Chaos Round
                 if chaos_round and not time_score_active and not tri_score_active:
+                    show_bird2 = False
+                    bird2_active = False
                     # Changed: use base chaos speeds, then apply powerups
                     chaos_pipe_base = 3
                     chaos_box_base = 2
@@ -756,7 +822,7 @@ def FlappyBirdCore():
                     tri_score_active = True
                     triangle_wave_created = False
                     triangles_spawned = 0
-                    triangles_to_spawn = random.randint(1, 2)
+                    triangles_to_spawn = random.randint(4, 6)
 
             power_texts = []
             if state["immunity"] and now < state["immunity_end"]:
@@ -768,7 +834,7 @@ def FlappyBirdCore():
             if state["bird_shrink"] and now < state["shrink_end"]:
                 power_texts.append(f"SHRINK {int(state['shrink_end'] - now)}s")
             if state["pipe_slow"] and now < state["slow_end"]:
-                power_texts.append(f"SLOW PIPES {int(state['slow_end'] - now)}s")
+                power_texts.append(f"SLOW {int(state['slow_end'] - now)}s")
             for i, t in enumerate(power_texts):
                 txt = font.render(t, True, Black)
                 screen.blit(txt, (10, 80 + i * 25))

@@ -332,6 +332,8 @@ def handle_item_collision(items, bird, state,cycle_count):
                 state["double_points"] = True
                 state["double_end"] = now + 8
                 state["reward_popup"] = ("DOUBLE POINTS!", now + 2)
+                state["scoring_number"] *= 2 
+                cycle_count *= 2
 
             elif color == "purple":
                 state["bird_shrink"] = True
@@ -344,7 +346,8 @@ def handle_item_collision(items, bird, state,cycle_count):
                 state["reward_popup"] = ("SLOW PIPES!", now + 2)
 
             # Extra score for coins
-            state["scoring_number"] += 5
+            state["scoring_number"] += 2
+            cycle_count += 2
 
         else:
             updated.append((rect, color, born))

@@ -343,7 +343,7 @@ def handle_item_collision(items, bird, state,cycle_count):
             elif color == "pink":
                 state["pipe_slow"] = True
                 state["slow_end"] = now + 8
-                state["reward_popup"] = ("SLOW PIPES!", now + 2)
+                state["reward_popup"] = ("SLOW!", now + 2)
 
             # Extra score for coins
             state["scoring_number"] += 2
